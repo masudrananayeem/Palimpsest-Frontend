@@ -1,0 +1,13 @@
+{
+  "name": "palimpsest-scripts",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "One-off admin scripts. Not part of the deployed frontend or backend.",
+  "scripts": {
+    "seed": "node seed-firestore.mjs"
+  },
+  "dependencies": {
+    "firebase-admin": "^13.0.2"
+  }
+}

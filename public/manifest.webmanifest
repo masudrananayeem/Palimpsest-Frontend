@@ -1,0 +1,9 @@
+{
+  "name": "Palimpsest Heritage Archive",
+  "short_name": "Palimpsest",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0e0f0c",
+  "theme_color": "#0e0f0c",
+  "description": "A digital heritage archive for artifact records, research notes, collections, and restoration evidence."
+}
