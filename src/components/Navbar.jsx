@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { NavLink, useNavigate } from "react-router-dom";
-import { Menu, X, ScanLine, Search, LogIn, LogOut, UserRound, LayoutDashboard } from "lucide-react";
+import { Menu, X, ScanLine, Search, LogIn, LogOut, UserRound, LayoutDashboard, ShieldCheck } from "lucide-react";
 import ThemeToggle from "./ThemeToggle";
 import { useAuth } from "../context/AuthContext";
 
@@ -16,7 +16,7 @@ const links = [
 export default function Navbar() {
   const [open, setOpen] = useState(false);
   const [accountOpen, setAccountOpen] = useState(false);
-  const { user, logout, isFirebaseConfigured } = useAuth();
+  const { user, logout, isFirebaseConfigured, isAdmin } = useAuth();
   const navigate = useNavigate();
 
   const handleLogout = async () => {
@@ -92,6 +92,11 @@ export default function Navbar() {
                     <NavLink to="/dashboard" onClick={() => setAccountOpen(false)} className="px-4 py-2 text-sm text-bone-dim hover:text-bone hover:bg-ink-line/30 flex items-center gap-2">
                       <LayoutDashboard className="w-3.5 h-3.5" /> Dashboard
                     </NavLink>
+                    {isAdmin && (
+                      <NavLink to="/admin" onClick={() => setAccountOpen(false)} className="px-4 py-2 text-sm text-scan hover:bg-ink-line/30 flex items-center gap-2">
+                        <ShieldCheck className="w-3.5 h-3.5" /> Admin panel
+                      </NavLink>
+                    )}
                     <button onClick={handleLogout} className="w-full text-left px-4 py-2 text-sm text-rust-bright hover:bg-ink-line/30 flex items-center gap-2">
                       <LogOut className="w-3.5 h-3.5" /> Sign out
                     </button>
@@ -142,6 +147,11 @@ export default function Navbar() {
           {user && (
             <NavLink to="/dashboard" onClick={() => setOpen(false)} className="font-mono text-sm tracking-wide uppercase text-bone-dim">
               Dashboard
+            </NavLink>
+          )}
+          {isAdmin && (
+            <NavLink to="/admin" onClick={() => setOpen(false)} className="font-mono text-sm tracking-wide uppercase text-scan flex items-center gap-2">
+              <ShieldCheck className="w-4 h-4" /> Admin panel
             </NavLink>
           )}
           <div className="h-px bg-ink-line my-1" />

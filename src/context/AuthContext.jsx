@@ -8,12 +8,25 @@ import {
   updateProfile,
 } from "firebase/auth";
 import { auth, googleProvider, isFirebaseConfigured } from "../lib/firebase";
+import { isDynamicAdmin } from "../lib/adminRepo";
+
+// "Owners" — the bootstrap admin tier, code-only (see firestore.rules).
+// Anyone else with admin access is added/removed from inside the app
+// (Admin panel → Manage admins), stored in the `admins` Firestore collection.
+const OWNER_EMAILS = (import.meta.env.VITE_ADMIN_EMAILS || "")
+  .split(",")
+  .map((e) => e.trim().toLowerCase())
+  .filter(Boolean);
 
 const AuthContext = createContext(null);
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [initializing, setInitializing] = useState(isFirebaseConfigured);
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [adminChecking, setAdminChecking] = useState(false);
+
+  const isOwner = Boolean(user?.email && OWNER_EMAILS.includes(user.email.toLowerCase()));
 
   useEffect(() => {
     if (!isFirebaseConfigured) return;
@@ -23,6 +36,32 @@ export function AuthProvider({ children }) {
     });
     return unsub;
   }, []);
+
+  // Owner status resolves instantly (no network round trip). Non-owner
+  // admin status is granted dynamically, so it needs a Firestore check —
+  // this can only ever *add* admin access, never remove the owner's.
+  useEffect(() => {
+    let active = true;
+    if (!user?.email) {
+      setIsAdmin(false);
+      setAdminChecking(false);
+      return;
+    }
+    if (isOwner) {
+      setIsAdmin(true);
+      setAdminChecking(false);
+      return;
+    }
+    setIsAdmin(false);
+    setAdminChecking(true);
+    isDynamicAdmin(user.email).then((result) => {
+      if (active) {
+        setIsAdmin(result);
+        setAdminChecking(false);
+      }
+    });
+    return () => { active = false; };
+  }, [user?.email, isOwner]);
 
   const requireConfig = () => {
     if (!isFirebaseConfigured) {
@@ -76,7 +115,7 @@ export function AuthProvider({ children }) {
 
   return (
     <AuthContext.Provider
-      value={{ user, initializing, isFirebaseConfigured, signUpEmail, signInEmail, signInGoogle, logout, updateAvatar, refreshUser }}
+      value={{ user, initializing, isFirebaseConfigured, isAdmin, isOwner, adminChecking, signUpEmail, signInEmail, signInGoogle, logout, updateAvatar, refreshUser }}
     >
       {children}
     </AuthContext.Provider>

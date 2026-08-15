@@ -89,6 +89,33 @@ from your actual site instead of any website.
 
 ---
 
+## 7. Set up the first admin (optional)
+
+Admin access has two tiers:
+
+- **Owner** — the bootstrap admin, set only by editing code (never through
+  the UI). This guarantees there's always at least one admin who can't be
+  accidentally locked out.
+- **Everyone else** — added or removed entirely from inside the app, at
+  **Admin panel → Manage admins**, by any current admin. No redeploy
+  needed for this tier.
+
+To set yourself up as the owner:
+
+1. In this repo's `.env`, set `VITE_ADMIN_EMAILS` to your email
+   (comma-separated if you want more than one owner).
+2. In `firestore.rules`, edit the `isOwner()` function's email list to
+   **exactly match** step 1, then republish the rules (Firestore → Rules →
+   paste → Publish).
+
+Both lists must match — the `.env` value only controls whether the Admin
+panel *shows up* in the UI for you; the `firestore.rules` list is what
+actually grants the access. Redeploy the frontend after changing `.env`.
+
+Once you can see the Admin panel, use **Manage admins** there to grant (or
+later revoke) access for anyone else — that part doesn't touch code or
+`.env` at all.
+
 ## Local development (both repos at once)
 
 ```bash

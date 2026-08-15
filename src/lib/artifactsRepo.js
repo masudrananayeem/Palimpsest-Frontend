@@ -4,6 +4,8 @@ import {
   getDoc,
   getDocs,
   addDoc,
+  updateDoc,
+  deleteDoc,
   query,
   where,
   orderBy,
@@ -78,4 +80,19 @@ export async function createArtifact(data, user) {
     createdAt: serverTimestamp(),
   });
   return ref.id;
+}
+
+/**
+ * Admin-only actions. Firestore rules are the real gatekeeper here — these
+ * will fail for anyone whose email isn't in the ADMIN_EMAILS list in
+ * firestore.rules, no matter what the client-side UI shows.
+ */
+export async function updateArtifactStatus(id, status) {
+  if (!isFirebaseConfigured) throw new Error("Firebase isn't configured.");
+  await updateDoc(doc(db, COLLECTION, id), { status });
+}
+
+export async function deleteArtifact(id) {
+  if (!isFirebaseConfigured) throw new Error("Firebase isn't configured.");
+  await deleteDoc(doc(db, COLLECTION, id));
 }

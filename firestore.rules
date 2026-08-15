@@ -3,15 +3,49 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
+    // Two tiers of admin, on purpose:
+    //
+    // 1. OWNERS — hardcoded here and in VITE_ADMIN_EMAILS. Only removable
+    //    by editing code + redeploying. This guarantees there's always at
+    //    least one admin who can never be locked out by mistake.
+    // 2. Everyone else in the `admins` collection — added and removed
+    //    from inside the app (Admin panel → Manage admins) by any current
+    //    admin, no redeploy needed.
+    //
+    // Keep the OWNERS list identical to VITE_ADMIN_EMAILS in .env — it's
+    // what actually enforces owner access (the frontend check alone
+    // grants nothing by itself).
+    function isOwner() {
+      return request.auth != null
+             && request.auth.token.email in ['you@example.com'];
+    }
+
+    function isAdmin() {
+      return request.auth != null
+             && (isOwner()
+                 || exists(/databases/$(database)/documents/admins/$(request.auth.token.email)));
+    }
+
+    // Any signed-in user can read their own admin-status doc (so the app
+    // can check "am I an admin?"). Only admins can list everyone's status,
+    // and only admins can grant/revoke — owners can never be removed this
+    // way since they're not stored here at all.
+    match /admins/{email} {
+      allow get: if request.auth != null && request.auth.token.email == email;
+      allow list: if isAdmin();
+      allow create, delete: if isAdmin() && !(email in ['you@example.com']);
+    }
+
     // Artifacts are readable by anyone (guests included) so the archive
-    // stays publicly browsable. Only a signed-in user can create a record,
-    // and only the record's own contributor can edit or delete it.
+    // stays publicly browsable. Any signed-in user can create a record.
+    // A record's own contributor can edit/delete it — and so can an admin,
+    // for curation (status changes, corrections, removals).
     match /artifacts/{artifactId} {
       allow read: if true;
       allow create: if request.auth != null
                     && request.resource.data.contributorId == request.auth.uid;
       allow update, delete: if request.auth != null
-                    && resource.data.contributorId == request.auth.uid;
+                    && (resource.data.contributorId == request.auth.uid || isAdmin());
     }
   }
 }
