@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import * as THREE from "three";
-import { RotateCcw, Move3d } from "lucide-react";
+import { RotateCcw, Move3d, AlertTriangle } from "lucide-react";
 
 /**
  * Turns a flat photo into an interactive pseudo-3D object: the image is
@@ -14,11 +14,24 @@ export default function PhotoRelief3D({ src, className = "", height = 360 }) {
   const mountRef = useRef(null);
   const [loading, setLoading] = useState(true);
   const [autoSpin, setAutoSpin] = useState(true);
+  const [error, setError] = useState("");
 
   useEffect(() => {
     if (!src || !mountRef.current) return;
     let disposed = false;
     const mount = mountRef.current;
+    setError("");
+    setLoading(true);
+
+    // Overall timeout: if nothing succeeds within 12s (slow/blocked image,
+    // extension interference, etc.), surface an error instead of sitting
+    // on "Building relief…" forever.
+    const timeout = setTimeout(() => {
+      if (!disposed) {
+        setLoading(false);
+        setError("This image took too long to load — it may be blocked by a browser extension, ad blocker, or a broken link.");
+      }
+    }, 12000);
 
     const scene = new THREE.Scene();
     const camera = new THREE.PerspectiveCamera(38, mount.clientWidth / height, 0.1, 100);
@@ -45,53 +58,82 @@ export default function PhotoRelief3D({ src, className = "", height = 360 }) {
     img.crossOrigin = "anonymous";
     img.onload = () => {
       if (disposed) return;
-      const w = 96;
-      const h = Math.round((img.height / img.width) * w) || 96;
-      const canvas = document.createElement("canvas");
-      canvas.width = w;
-      canvas.height = h;
-      const ctx = canvas.getContext("2d");
-      ctx.drawImage(img, 0, 0, w, h);
-      const data = ctx.getImageData(0, 0, w, h).data;
+      try {
+        const w = 96;
+        const h = Math.round((img.height / img.width) * w) || 96;
+        const canvas = document.createElement("canvas");
+        canvas.width = w;
+        canvas.height = h;
+        const ctx = canvas.getContext("2d");
+        ctx.drawImage(img, 0, 0, w, h);
+        const data = ctx.getImageData(0, 0, w, h).data;
 
-      const aspect = img.width / img.height;
-      const planeW = aspect >= 1 ? 2.6 : 2.6 * aspect;
-      const planeH = aspect >= 1 ? 2.6 / aspect : 2.6;
-      const geometry = new THREE.PlaneGeometry(planeW, planeH, w - 1, h - 1);
-      const pos = geometry.attributes.position;
-      for (let i = 0; i < pos.count; i++) {
-        const px = i % w;
-        const py = Math.floor(i / w);
-        const idx = (py * w + px) * 4;
-        const lum = (data[idx] * 0.299 + data[idx + 1] * 0.587 + data[idx + 2] * 0.114) / 255;
-        pos.setZ(i, lum * 0.42);
+        const aspect = img.width / img.height;
+        const planeW = aspect >= 1 ? 2.6 : 2.6 * aspect;
+        const planeH = aspect >= 1 ? 2.6 / aspect : 2.6;
+        const geometry = new THREE.PlaneGeometry(planeW, planeH, w - 1, h - 1);
+        const pos = geometry.attributes.position;
+        for (let i = 0; i < pos.count; i++) {
+          const px = i % w;
+          const py = Math.floor(i / w);
+          const idx = (py * w + px) * 4;
+          const lum = (data[idx] * 0.299 + data[idx + 1] * 0.587 + data[idx + 2] * 0.114) / 255;
+          pos.setZ(i, lum * 0.42);
+        }
+        pos.needsUpdate = true;
+        geometry.computeVertexNormals();
+
+        const texture = new THREE.Texture(img);
+        texture.needsUpdate = true;
+        texture.colorSpace = THREE.SRGBColorSpace;
+        const material = new THREE.MeshStandardMaterial({
+          map: texture,
+          roughness: 0.55,
+          metalness: 0.08,
+          side: THREE.DoubleSide,
+        });
+
+        const mesh = new THREE.Mesh(geometry, material);
+        group.add(mesh);
+
+        // Faint backing card behind the relief for depth cue.
+        const backGeo = new THREE.PlaneGeometry(planeW * 1.06, planeH * 1.06);
+        const backMat = new THREE.MeshBasicMaterial({ color: 0x111111, transparent: true, opacity: 0.5 });
+        const back = new THREE.Mesh(backGeo, backMat);
+        back.position.z = -0.3;
+        group.add(back);
+
+        clearTimeout(timeout);
+        setLoading(false);
+      } catch {
+        // Most likely a CORS-tainted canvas (image host doesn't allow
+        // cross-origin pixel reads) — fall back to a flat, untextured-read
+        // plane using the image purely as a WebGL texture, no pixel sampling.
+        try {
+          const aspect = img.width / img.height || 1;
+          const planeW = aspect >= 1 ? 2.6 : 2.6 * aspect;
+          const planeH = aspect >= 1 ? 2.6 / aspect : 2.6;
+          const geometry = new THREE.PlaneGeometry(planeW, planeH, 1, 1);
+          const texture = new THREE.Texture(img);
+          texture.needsUpdate = true;
+          texture.colorSpace = THREE.SRGBColorSpace;
+          const material = new THREE.MeshStandardMaterial({ map: texture, roughness: 0.6, side: THREE.DoubleSide });
+          group.add(new THREE.Mesh(geometry, material));
+          clearTimeout(timeout);
+          setLoading(false);
+        } catch {
+          clearTimeout(timeout);
+          setLoading(false);
+          setError("Couldn't read this image's pixels (likely blocked by CORS) — showing isn't possible for this source.");
+        }
       }
-      pos.needsUpdate = true;
-      geometry.computeVertexNormals();
-
-      const texture = new THREE.Texture(img);
-      texture.needsUpdate = true;
-      texture.colorSpace = THREE.SRGBColorSpace;
-      const material = new THREE.MeshStandardMaterial({
-        map: texture,
-        roughness: 0.55,
-        metalness: 0.08,
-        side: THREE.DoubleSide,
-      });
-
-      const mesh = new THREE.Mesh(geometry, material);
-      group.add(mesh);
-
-      // Faint backing card behind the relief for depth cue.
-      const backGeo = new THREE.PlaneGeometry(planeW * 1.06, planeH * 1.06);
-      const backMat = new THREE.MeshBasicMaterial({ color: 0x111111, transparent: true, opacity: 0.5 });
-      const back = new THREE.Mesh(backGeo, backMat);
-      back.position.z = -0.3;
-      group.add(back);
-
-      setLoading(false);
     };
-    img.onerror = () => setLoading(false);
+    img.onerror = () => {
+      if (disposed) return;
+      clearTimeout(timeout);
+      setLoading(false);
+      setError("This image failed to load — the link may be broken, or a browser extension/ad blocker is blocking it.");
+    };
     img.src = src;
 
     let dragging = false;
@@ -143,6 +185,7 @@ export default function PhotoRelief3D({ src, className = "", height = 360 }) {
 
     return () => {
       disposed = true;
+      clearTimeout(timeout);
       cancelAnimationFrame(frame);
       window.removeEventListener("resize", onResize);
       window.removeEventListener("pointermove", onMove);
@@ -157,21 +200,31 @@ export default function PhotoRelief3D({ src, className = "", height = 360 }) {
   return (
     <div className={`relative rounded-xl overflow-hidden border border-ink-line bg-ink/60 ${className}`}>
       <div ref={mountRef} style={{ height }} className="w-full cursor-grab active:cursor-grabbing" />
-      {loading && (
+      {loading && !error && (
         <div className="absolute inset-0 flex items-center justify-center font-mono text-[11px] text-bone-faint uppercase tracking-wider">
           Building relief…
         </div>
       )}
-      <div className="absolute bottom-3 left-3 flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-wider text-bone-faint bg-ink/70 backdrop-blur px-2.5 py-1.5 rounded-md">
-        <Move3d className="w-3.5 h-3.5 text-scan" /> Drag to rotate
-      </div>
-      <button
-        onClick={() => setAutoSpin((s) => !s)}
-        className="absolute bottom-3 right-3 w-8 h-8 rounded-full border border-ink-line bg-ink/70 backdrop-blur flex items-center justify-center text-bone-faint hover:text-scan hover:border-scan transition-colors"
-        aria-label="Toggle auto-rotate"
-      >
-        <RotateCcw className="w-3.5 h-3.5" />
-      </button>
+      {error && (
+        <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 px-6 text-center bg-ink/80">
+          <AlertTriangle className="w-5 h-5 text-rust-bright" />
+          <p className="text-xs text-bone-dim max-w-xs">{error}</p>
+        </div>
+      )}
+      {!error && (
+        <>
+          <div className="absolute bottom-3 left-3 flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-wider text-bone-faint bg-ink/70 backdrop-blur px-2.5 py-1.5 rounded-md">
+            <Move3d className="w-3.5 h-3.5 text-scan" /> Drag to rotate
+          </div>
+          <button
+            onClick={() => setAutoSpin((s) => !s)}
+            className="absolute bottom-3 right-3 w-8 h-8 rounded-full border border-ink-line bg-ink/70 backdrop-blur flex items-center justify-center text-bone-faint hover:text-scan hover:border-scan transition-colors"
+            aria-label="Toggle auto-rotate"
+          >
+            <RotateCcw className="w-3.5 h-3.5" />
+          </button>
+        </>
+      )}
     </div>
   );
 }
