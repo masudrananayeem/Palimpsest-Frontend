@@ -11,7 +11,7 @@ export default function Collections() {
       <div className="panel px-4 py-3 font-mono text-xs text-bone-faint"><span className="text-bone">{collectionStats.length}</span> active collections</div>
     </div>
     <div className="mt-12 grid md:grid-cols-2 gap-6">
-      {collectionStats.map((collection, i) => <Reveal key={collection.id} delay={i*80}><article className="panel p-6 min-h-[330px] overflow-hidden relative lift-card">
+      {collectionStats.map((collection, i) => <Reveal key={collection.id} variant={i % 2 === 0 ? "left" : "right"} delay={i*80}><article className="panel p-6 min-h-[330px] overflow-hidden relative lift-card">
         <div className="absolute -right-10 -top-10 w-40 h-40 rounded-full bg-scan/5 blur-2xl" />
         <div className="flex items-center justify-between"><span className="eyebrow">{collection.eyebrow}</span><Layers3 className="w-5 h-5 text-bone-faint" /></div>
         <h2 className="mt-4 text-3xl">{collection.title}</h2><p className="mt-3 text-bone-dim max-w-xl leading-relaxed">{collection.description}</p>

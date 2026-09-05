@@ -3,6 +3,7 @@ import { ArrowRight, ScanLine, Layers, ShieldCheck, Users } from "lucide-react";
 import MeshViewer from "../components/MeshViewer";
 import RestorationSlider from "../components/RestorationSlider";
 import ArtifactCard from "../components/ArtifactCard";
+import TiltCard from "../components/TiltCard";
 import Reveal from "../components/Reveal";
 import Tooltip from "../components/Tooltip";
 import { artifacts } from "../data/artifacts";
@@ -41,6 +42,7 @@ export default function Home() {
     <div>
       {/* HERO */}
       <section className="relative overflow-hidden border-b border-ink-line">
+        <div className="aurora-bg" />
         <div className="absolute inset-0 mesh-grid opacity-60 pointer-events-none" />
         <div className="absolute -top-24 -left-20 w-72 h-72 rounded-full bg-scan/10 blur-[100px] pointer-events-none" />
         <div className="absolute -bottom-32 -right-10 w-80 h-80 rounded-full bg-bronze/10 blur-[110px] pointer-events-none" />
@@ -63,7 +65,7 @@ export default function Home() {
               independent conservators.
             </p>
             <div className="mt-9 flex flex-wrap gap-4">
-              <Link to="/upload" className="btn-primary">
+              <Link to="/upload" className="btn-primary glow-pulse">
                 Submit a scan <ArrowRight className="w-4 h-4" />
               </Link>
               <Link to="/archive" className="btn-ghost">
@@ -92,19 +94,22 @@ export default function Home() {
             </div>
           </div>
 
-          <div className="relative aspect-square rounded-xl border border-ink-line mesh-grid overflow-hidden">
-            <MeshViewer tone="#7FDCE0" shape="mask" className="w-full h-full" />
+          <Reveal variant="scale" delay={120} as="div" className="relative aspect-square rounded-xl border border-ink-line mesh-grid overflow-hidden">
+            <TiltCard strength={9} tone="#7FDCE0" className="w-full h-full">
+              <MeshViewer tone="#7FDCE0" shape="mask" className="w-full h-full" />
+              <span className="grade-wash" />
+            </TiltCard>
             <div className="absolute inset-x-0 top-0 h-1/3 bg-gradient-to-b from-scan/10 to-transparent animate-scanline pointer-events-none" />
             <div className="absolute bottom-4 left-4 font-mono text-[10px] text-scan tracking-wide">
               LIVE MESH PREVIEW · amphora-317.glb
             </div>
-          </div>
+          </Reveal>
         </div>
       </section>
 
       {/* SIGNATURE: restoration slider */}
       <section className="mx-auto max-w-7xl px-6 lg:px-10 py-24 grid lg:grid-cols-2 gap-14 items-center">
-        <div>
+        <Reveal variant="left">
           <span className="eyebrow">The signature move</span>
           <h2 className="mt-4 text-3xl sm:text-4xl leading-tight">
             See exactly what was found —
@@ -121,20 +126,20 @@ export default function Home() {
           >
             Open full artifact record <ArrowRight className="w-4 h-4" />
           </Link>
-        </div>
-        <RestorationSlider />
+        </Reveal>
+        <Reveal variant="right" delay={120}><RestorationSlider /></Reveal>
       </section>
 
       {/* HOW IT WORKS */}
       <section className="border-y border-ink-line bg-ink-soft/40">
         <div className="mx-auto max-w-7xl px-6 lg:px-10 py-24">
-          <span className="eyebrow">Process</span>
+          <Reveal><span className="eyebrow">Process</span>
           <h2 className="mt-4 text-3xl sm:text-4xl max-w-xl">
             From fragment to archive record in four checked stages.
-          </h2>
+          </h2></Reveal>
           <div className="mt-14 grid sm:grid-cols-2 lg:grid-cols-4 gap-px bg-ink-line">
             {steps.map((s, i) => (
-              <Reveal key={s.n} delay={i * 100} className="group/step bg-ink p-7 flex flex-col gap-3 transition-colors duration-300 hover:bg-ink-soft">
+              <Reveal key={s.n} variant="scale" delay={i * 100} className="group/step bg-ink p-7 flex flex-col gap-3 transition-colors duration-300 hover:bg-ink-soft">
                 <span className="font-mono text-xs text-verdigris-bright transition-transform duration-300 group-hover/step:translate-x-1 inline-block w-fit">
                   {s.n}
                 </span>
@@ -148,7 +153,7 @@ export default function Home() {
 
       {/* FEATURED ARTIFACTS */}
       <section className="mx-auto max-w-7xl px-6 lg:px-10 py-24">
-        <div className="flex items-end justify-between mb-10 flex-wrap gap-4">
+        <Reveal className="flex items-end justify-between mb-10 flex-wrap gap-4">
           <div>
             <span className="eyebrow">Recently archived</span>
             <h2 className="mt-4 text-3xl sm:text-4xl">From the collection</h2>
@@ -156,10 +161,10 @@ export default function Home() {
           <Link to="/archive" className="btn-ghost">
             View full archive <ArrowRight className="w-4 h-4" />
           </Link>
-        </div>
+        </Reveal>
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
           {artifacts.slice(0, 3).map((a, i) => (
-            <Reveal key={a.id} delay={i * 100}>
+            <Reveal key={a.id} variant="scale" delay={i * 100}>
               <ArtifactCard artifact={a} />
             </Reveal>
           ))}

@@ -47,5 +47,18 @@ service cloud.firestore {
       allow update, delete: if request.auth != null
                     && (resource.data.contributorId == request.auth.uid || isAdmin());
     }
+
+    // Research documents authored inside the app. Same shape as artifacts:
+    // world-readable, any signed-in user can create, only the author or an
+    // admin can edit/delete. The bundled document library in
+    // src/data/documents.js is separate static content and never touches
+    // this collection.
+    match /documents/{documentId} {
+      allow read: if true;
+      allow create: if request.auth != null
+                    && request.resource.data.ownerId == request.auth.uid;
+      allow update, delete: if request.auth != null
+                    && (resource.data.ownerId == request.auth.uid || isAdmin());
+    }
   }
 }

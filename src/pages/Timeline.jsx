@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Clock3, ArrowUpRight } from 'lucide-react';
 import { artifacts } from '../data/artifacts';
+import Reveal from '../components/Reveal';
 
 const periods = [
   { id:'ancient', label:'Before 500 BCE', matches:['BCE'] },
@@ -19,7 +20,8 @@ export default function Timeline() {
     <span className="eyebrow">Chronology</span><h1 className="mt-4 text-4xl sm:text-5xl">A timeline of the archive.</h1><p className="mt-4 max-w-2xl text-bone-dim leading-relaxed">Move through the current collection chronologically and jump directly into the surviving evidence behind each record.</p>
     <div className="mt-10 flex flex-wrap gap-2"><button onClick={()=>setSelected('all')} className={`btn-ghost !px-4 !py-2.5 text-xs ${selected==='all'?'!border-scan !text-scan':''}`}>All periods</button>{periods.map(p=><button key={p.id} onClick={()=>setSelected(p.id)} className={`btn-ghost !px-4 !py-2.5 text-xs ${selected===p.id?'!border-scan !text-scan':''}`}>{p.label}</button>)}</div>
     <div className="mt-12 relative pl-7 sm:pl-10 border-l border-ink-line">
-      {shown.map((a, i)=><article key={a.id} className="relative pb-10"><span className="absolute -left-[31px] sm:-left-[41px] top-1 w-3 h-3 rounded-full bg-scan ring-4 ring-ink"/><div className="panel p-5 sm:p-6"><div className="flex flex-wrap gap-3 items-center font-mono text-[10px] uppercase tracking-wider text-bone-faint"><Clock3 className="w-3.5 h-3.5 text-scan"/>{a.era}<span>•</span>{a.category}</div><div className="mt-3 flex flex-col sm:flex-row sm:items-center justify-between gap-4"><div><h2 className="text-xl">{a.title}</h2><p className="mt-1 text-sm text-bone-dim">{a.origin}</p></div><Link to={`/archive/${a.id}`} className="btn-ghost !px-3.5 !py-2 !text-xs shrink-0">Open record <ArrowUpRight className="w-3.5 h-3.5"/></Link></div></div>{i<shown.length-1&&<div/>}</article>)}
+      {shown.map((a, i)=><Reveal key={a.id} as="article" variant="left" delay={Math.min(i,6)*60} className="relative pb-10"><span className="absolute -left-[31px] sm:-left-[41px] top-1 w-3 h-3 rounded-full bg-scan ring-4 ring-ink glow-pulse"/><div className="panel p-5 sm:p-6 lift-card">
+<div className="flex flex-wrap gap-3 items-center font-mono text-[10px] uppercase tracking-wider text-bone-faint"><Clock3 className="w-3.5 h-3.5 text-scan"/>{a.era}<span>•</span>{a.category}</div><div className="mt-3 flex flex-col sm:flex-row sm:items-center justify-between gap-4"><div><h2 className="text-xl">{a.title}</h2><p className="mt-1 text-sm text-bone-dim">{a.origin}</p></div><Link to={`/archive/${a.id}`} className="btn-ghost !px-3.5 !py-2 !text-xs shrink-0">Open record <ArrowUpRight className="w-3.5 h-3.5"/></Link></div></div>{i<shown.length-1&&<div/>}</Reveal>)}
     </div>
   </div>;
 }

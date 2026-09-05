@@ -151,7 +151,7 @@ export default function Archive() {
       {filtered.length > 0 ? (
         view === "grid" ? (
           <div className="mt-6 grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filtered.map((a, i) => <Reveal key={a.id} delay={(i % 3) * 70}><ArtifactCard artifact={a} /></Reveal>)}
+            {filtered.map((a, i) => <Reveal key={a.id} variant="scale" delay={(i % 3) * 70}><ArtifactCard artifact={a} /></Reveal>)}
           </div>
         ) : (
           <div className="mt-6 panel divide-y divide-ink-line overflow-hidden">

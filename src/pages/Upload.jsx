@@ -1,7 +1,8 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { CheckCircle2, Loader2, ScanLine, ShieldCheck, AlertTriangle, CloudUpload } from "lucide-react";
+import { CheckCircle2, Loader2, ScanLine, ShieldCheck, AlertTriangle, CloudUpload, Sparkles } from "lucide-react";
 import UploadDropzone from "../components/UploadDropzone";
+import PhotoRelief3D from "../components/PhotoRelief3D";
 import { categories } from "../data/artifacts";
 import { useAuth } from "../context/AuthContext";
 import { createArtifact } from "../lib/artifactsRepo";
@@ -37,6 +38,15 @@ export default function Upload() {
 
   const totalSize = useMemo(() => files.reduce((sum, file) => sum + file.size, 0), [files]);
   const update = (key) => (e) => setForm((f) => ({ ...f, [key]: e.target.value }));
+
+  const coverImageFile = useMemo(() => files.find((f) => f.type.startsWith("image/")) || null, [files]);
+  const [previewUrl, setPreviewUrl] = useState(null);
+  useEffect(() => {
+    if (!coverImageFile) { setPreviewUrl(null); return; }
+    const url = URL.createObjectURL(coverImageFile);
+    setPreviewUrl(url);
+    return () => URL.revokeObjectURL(url);
+  }, [coverImageFile]);
 
   const canAdvance = () => {
     if (step === 0) return form.title.trim() && form.era.trim();
@@ -191,6 +201,13 @@ export default function Upload() {
               </div>
             )}
             {errorMsg && <p className="mt-4 text-sm text-rust-bright">{errorMsg}</p>}
+
+            {previewUrl && (
+              <div className="mt-6">
+                <p className="flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-wide text-bone-faint mb-3"><Sparkles className="w-3.5 h-3.5 text-scan" /> 3D preview of your cover photo</p>
+                <PhotoRelief3D src={previewUrl} height={280} />
+              </div>
+            )}
           </div>
         )}
       </div>

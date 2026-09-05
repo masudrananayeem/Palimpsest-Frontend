@@ -157,12 +157,18 @@ html[data-theme="light"] {
   /* Scroll reveal */
   .reveal {
     opacity: 0;
-    transform: translateY(22px);
-    transition: opacity 0.7s cubic-bezier(0.16,1,0.3,1), transform 0.7s cubic-bezier(0.16,1,0.3,1);
+    transition: opacity 0.7s cubic-bezier(0.16,1,0.3,1), transform 0.7s cubic-bezier(0.16,1,0.3,1), filter 0.7s cubic-bezier(0.16,1,0.3,1);
   }
+  .reveal-up { transform: translateY(26px); }
+  .reveal-down { transform: translateY(-26px); }
+  .reveal-left { transform: translateX(-34px); }
+  .reveal-right { transform: translateX(34px); }
+  .reveal-scale { transform: scale(0.92) translateY(10px); }
+  .reveal-blur { transform: translateY(14px); filter: blur(8px); }
   .reveal.is-visible {
     opacity: 1;
-    transform: translateY(0);
+    transform: translate(0, 0) scale(1);
+    filter: blur(0);
   }
 
   /* Lift-on-hover for cards */
@@ -173,6 +179,78 @@ html[data-theme="light"] {
     transform: translateY(-6px);
     box-shadow: 0 20px 40px -20px rgba(127,220,224,0.25);
   }
+
+  /* --- Modern 3D tilt card + colour-grade glare (TiltCard.jsx) --- */
+  .tilt-card {
+    position: relative;
+    transform-style: preserve-3d;
+    will-change: transform;
+    transition: transform 0.35s cubic-bezier(0.16,1,0.3,1);
+  }
+  .tilt-glare {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    border-radius: inherit;
+    opacity: var(--glare-o, 0);
+    transition: opacity 0.3s ease;
+    background:
+      radial-gradient(circle at var(--glare-x, 50%) var(--glare-y, 50%), rgb(255 255 255 / 0.28), transparent 42%),
+      linear-gradient(135deg, color-mix(in srgb, var(--tilt-tone, var(--c-scan)) 22%, transparent), transparent 55%);
+    mix-blend-mode: overlay;
+  }
+
+  /* Duotone colour-grade wash used on hover of media panels */
+  .grade-wash {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.45s cubic-bezier(0.16,1,0.3,1);
+    background: linear-gradient(160deg, rgb(var(--c-scan) / 0.28), rgb(var(--c-verdigris) / 0.18) 45%, transparent 80%);
+    mix-blend-mode: color-dodge;
+  }
+  .group:hover .grade-wash, .grade-wash.is-active { opacity: 1; }
+
+  /* Slow-drifting aurora backdrop for hero/section backgrounds */
+  .aurora-bg {
+    position: absolute;
+    inset: -20%;
+    pointer-events: none;
+    z-index: 0;
+    background:
+      radial-gradient(38% 45% at 20% 25%, rgb(var(--c-scan) / 0.16), transparent 60%),
+      radial-gradient(35% 40% at 80% 20%, rgb(var(--c-verdigris) / 0.16), transparent 60%),
+      radial-gradient(45% 50% at 50% 85%, rgb(var(--c-bronze) / 0.12), transparent 60%);
+    filter: blur(40px);
+    animation: aurora-drift 18s ease-in-out infinite alternate;
+  }
+
+  /* Soft pulsing glow ring, used on primary/interactive focal elements */
+  .glow-pulse {
+    animation: glow-pulse 3.2s ease-in-out infinite;
+  }
+
+  /* Floating idle motion for glyphs/icons */
+  .float-idle {
+    animation: float-idle 6s ease-in-out infinite;
+  }
+}
+
+@keyframes aurora-drift {
+  0% { transform: translate3d(0, 0, 0) rotate(0deg); }
+  100% { transform: translate3d(2%, -3%, 0) rotate(8deg); }
+}
+
+@keyframes glow-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgb(var(--c-scan) / 0.35); }
+  50% { box-shadow: 0 0 0 10px rgb(var(--c-scan) / 0); }
+}
+
+@keyframes float-idle {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-8px); }
 }
 
 @media (prefers-reduced-motion: reduce) {

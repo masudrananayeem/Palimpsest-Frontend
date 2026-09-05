@@ -1,11 +1,11 @@
 import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
-import { Plus, Eye, Heart, Archive, ArrowUpRight, History, Download, Trash2, Loader2, Camera, UserRound, AlertTriangle } from "lucide-react";
+import { Plus, Eye, Heart, Archive, ArrowUpRight, History, Download, Trash2, Loader2, Camera, UserRound, AlertTriangle, Pencil, X, Save } from "lucide-react";
 import Reveal from "../components/Reveal";
 import Tooltip from "../components/Tooltip";
 import { artifacts as demoArtifacts, statusMeta } from "../data/artifacts";
 import { useAuth } from "../context/AuthContext";
-import { getArtifactsByUser } from "../lib/artifactsRepo";
+import { getArtifactsByUser, updateArtifact, deleteArtifact } from "../lib/artifactsRepo";
 import { uploadToCloudinary, isCloudinaryConfigured } from "../lib/cloudinary";
 import useFavorites from "../hooks/useFavorites";
 import useRecentArtifacts from "../hooks/useRecentArtifacts";
@@ -16,6 +16,13 @@ export default function Dashboard() {
   const { recent, clearRecent } = useRecentArtifacts();
   const [mine, setMine] = useState([]);
   const [loading, setLoading] = useState(isFirebaseConfigured);
+  const [editingArtifact, setEditingArtifact] = useState(null);
+
+  const refreshMine = () => {
+    if (!isFirebaseConfigured || !user) return;
+    setLoading(true);
+    getArtifactsByUser(user.uid).then((items) => { setMine(items); setLoading(false); });
+  };
 
   useEffect(() => {
     let active = true;
@@ -96,11 +103,31 @@ export default function Dashboard() {
               <div className="px-5 py-10 text-center text-bone-dim text-sm flex items-center justify-center gap-2"><Loader2 className="w-4 h-4 animate-spin" /> Loading your submissions…</div>
             ) : (
               <>
-                {allArtifacts.map((a) => <SubmissionRow key={a.id} artifact={a} />)}
+                {allArtifacts.map((a) => (
+                  <SubmissionRow
+                    key={a.id}
+                    artifact={a}
+                    editable={isFirebaseConfigured}
+                    onEdit={() => setEditingArtifact(a)}
+                    onDelete={async () => {
+                      if (!confirm(`Delete "${a.title}"? This can't be undone.`)) return;
+                      await deleteArtifact(a.id);
+                      refreshMine();
+                    }}
+                  />
+                ))}
                 {allArtifacts.length === 0 && <div className="px-5 py-10 text-center text-bone-dim text-sm">No submissions yet — <Link to="/upload" className="text-scan hover:underline">submit your first scan</Link>.</div>}
               </>
             )}
           </div>
+
+          {editingArtifact && (
+            <EditArtifactModal
+              artifact={editingArtifact}
+              onClose={() => setEditingArtifact(null)}
+              onSaved={() => { setEditingArtifact(null); refreshMine(); }}
+            />
+          )}
 
           <div className="mt-10">
             <div className="flex items-center justify-between mb-5 gap-4">
@@ -198,7 +225,61 @@ function AvatarCard({ user, updateAvatar }) {
   );
 }
 
-function SubmissionRow({ artifact }) {
+function SubmissionRow({ artifact, editable, onEdit, onDelete }) {
   const status = statusMeta[artifact.status] || statusMeta.queued;
-  return <Link to={`/archive/${artifact.id}`} className="group/row flex items-center justify-between gap-4 px-5 py-4 hover:bg-ink-line/20 transition-all"><div className="min-w-0"><p className="text-bone truncate group-hover/row:text-scan">{artifact.title}</p><p className="text-xs text-bone-dim mt-1">{artifact.era}</p></div><span className={`shrink-0 flex items-center gap-1.5 font-mono text-[10px] uppercase ${status.color}`}><span className={`w-1.5 h-1.5 rounded-full ${status.dot}`} /> {status.label}</span></Link>;
+  return (
+    <div className="group/row flex items-center justify-between gap-4 px-5 py-4 hover:bg-ink-line/20 transition-all">
+      <Link to={`/archive/${artifact.id}`} className="min-w-0 flex-1"><p className="text-bone truncate group-hover/row:text-scan">{artifact.title}</p><p className="text-xs text-bone-dim mt-1">{artifact.era}</p></Link>
+      <span className={`shrink-0 flex items-center gap-1.5 font-mono text-[10px] uppercase ${status.color}`}><span className={`w-1.5 h-1.5 rounded-full ${status.dot}`} /> {status.label}</span>
+      {editable && (
+        <div className="shrink-0 flex items-center gap-1">
+          <button onClick={onEdit} className="p-1.5 text-bone-faint hover:text-scan" aria-label={`Edit ${artifact.title}`}><Pencil className="w-4 h-4" /></button>
+          <button onClick={onDelete} className="p-1.5 text-bone-faint hover:text-rust-bright" aria-label={`Delete ${artifact.title}`}><Trash2 className="w-4 h-4" /></button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function EditArtifactModal({ artifact, onClose, onSaved }) {
+  const [form, setForm] = useState({
+    title: artifact.title || "",
+    era: artifact.era || "",
+    category: artifact.category || "",
+    condition: artifact.condition || "",
+    provenance: artifact.provenance || "",
+  });
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+
+  const save = async () => {
+    setSaving(true);
+    setError("");
+    try {
+      await updateArtifact(artifact.id, form);
+      onSaved();
+    } catch (err) {
+      setError(err.message || "Couldn't save changes.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink/80 backdrop-blur-sm p-4" onClick={onClose}>
+      <div className="panel w-full max-w-md p-6 relative" onClick={(e) => e.stopPropagation()}>
+        <button onClick={onClose} className="absolute top-4 right-4 text-bone-faint hover:text-scan"><X className="w-5 h-5" /></button>
+        <h2 className="text-2xl">Edit submission</h2>
+        <div className="mt-5 space-y-3">
+          <input className="field" placeholder="Title" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} />
+          <input className="field" placeholder="Era" value={form.era} onChange={(e) => setForm({ ...form, era: e.target.value })} />
+          <input className="field" placeholder="Category" value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })} />
+          <input className="field" placeholder="Condition" value={form.condition} onChange={(e) => setForm({ ...form, condition: e.target.value })} />
+          <textarea className="field min-h-24 resize-y" placeholder="Provenance notes" value={form.provenance} onChange={(e) => setForm({ ...form, provenance: e.target.value })} />
+        </div>
+        {error && <p className="mt-3 text-xs text-rust-bright">{error}</p>}
+        <button onClick={save} disabled={saving} className="btn-primary mt-5 w-full justify-center">{saving ? "Saving…" : <>Save changes <Save className="w-4 h-4" /></>}</button>
+      </div>
+    </div>
+  );
 }

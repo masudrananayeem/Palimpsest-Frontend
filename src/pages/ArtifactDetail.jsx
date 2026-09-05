@@ -1,7 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
 import { useParams, Link } from "react-router-dom";
-import { Download, Layers, Box, User, MapPin, Calendar, ArrowLeft, Heart, Share2, Check, Copy, ShieldCheck, Lock, Loader2 } from "lucide-react";
+import { Download, Layers, Box, User, MapPin, Calendar, ArrowLeft, Heart, Share2, Check, Copy, ShieldCheck, Lock, Loader2, Image as ImageIcon, Boxes, Sparkles } from "lucide-react";
 import MeshViewer from "../components/MeshViewer";
+import PhotoRelief3D from "../components/PhotoRelief3D";
+import AIModelPanel from "../components/AIModelPanel";
 import RestorationSlider from "../components/RestorationSlider";
 import ArtifactCard from "../components/ArtifactCard";
 import Reveal from "../components/Reveal";
@@ -25,6 +27,7 @@ export default function ArtifactDetail() {
   const { addRecent } = useRecentArtifacts();
   const requireAuth = useAuthGate();
   const [notes, setNotes] = useLocalStorage(`palimpsest-note-${id}`, "");
+  const [viewMode, setViewMode] = useState("flat"); // "flat" | "relief"
 
   useEffect(() => {
     let active = true;
@@ -106,9 +109,22 @@ export default function ArtifactDetail() {
 
       <div className="mt-6 grid lg:grid-cols-2 gap-12">
         <div>
+          {artifact.imageUrl && (
+            <div className="mb-3 inline-flex rounded-lg border border-ink-line overflow-hidden">
+              <button onClick={() => setViewMode("flat")} className={`px-3.5 py-2 text-xs font-mono uppercase tracking-wide flex items-center gap-1.5 transition-colors ${viewMode === "flat" ? "bg-scan/15 text-scan" : "text-bone-faint hover:text-bone"}`}><ImageIcon className="w-3.5 h-3.5" /> Photo</button>
+              <button onClick={() => setViewMode("relief")} className={`px-3.5 py-2 text-xs font-mono uppercase tracking-wide flex items-center gap-1.5 transition-colors border-l border-ink-line ${viewMode === "relief" ? "bg-scan/15 text-scan" : "text-bone-faint hover:text-bone"}`}><Boxes className="w-3.5 h-3.5" /> 3D relief</button>
+              <button onClick={() => setViewMode("ai")} className={`px-3.5 py-2 text-xs font-mono uppercase tracking-wide flex items-center gap-1.5 transition-colors border-l border-ink-line ${viewMode === "ai" ? "bg-scan/15 text-scan" : "text-bone-faint hover:text-bone"}`}><Sparkles className="w-3.5 h-3.5" /> AI 3D model</button>
+            </div>
+          )}
           <div className="aspect-square rounded-xl border border-ink-line mesh-grid overflow-hidden relative">
             {artifact.imageUrl ? (
-              <img src={artifact.imageUrl} alt={artifact.title} className="w-full h-full object-cover" />
+              viewMode === "relief" ? (
+                <PhotoRelief3D src={artifact.imageUrl} height={520} className="w-full h-full !rounded-none border-0" />
+              ) : viewMode === "ai" ? (
+                <div className="absolute inset-0 flex items-center p-4 bg-ink"><AIModelPanel artifact={artifact} canEdit={Boolean(user) && (user.uid === artifact.contributorId)} /></div>
+              ) : (
+                <img src={artifact.imageUrl} alt={artifact.title} className="w-full h-full object-cover" />
+              )
             ) : (
               <MeshViewer tone={artifact.thumbnailTone} shape={artifact.shape} className="w-full h-full" />
             )}
@@ -120,7 +136,7 @@ export default function ArtifactDetail() {
                 {shared ? <Check className="w-4 h-4 text-verdigris-bright" /> : <Share2 className="w-4 h-4" />}
               </button>
             </div>
-            <div className="absolute bottom-4 left-4 font-mono text-[10px] text-scan tracking-wide">{artifact.meshVerts} vertices · rotate preview</div>
+            {viewMode === "flat" && <div className="absolute bottom-4 left-4 font-mono text-[10px] text-scan tracking-wide">{artifact.meshVerts} vertices · rotate preview</div>}
           </div>
 
           <div className="mt-8">

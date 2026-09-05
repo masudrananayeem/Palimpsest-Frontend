@@ -92,6 +92,17 @@ export async function updateArtifactStatus(id, status) {
   await updateDoc(doc(db, COLLECTION, id), { status });
 }
 
+/**
+ * Full-field edit for a record's own contributor (or an admin). Firestore
+ * rules are still the real gatekeeper — this just lets the UI offer an
+ * edit form instead of only status changes.
+ */
+export async function updateArtifact(id, data) {
+  if (!isFirebaseConfigured) throw new Error("Firebase isn't configured.");
+  const { contributorId, contributor, createdAt, id: _id, ...safe } = data;
+  await updateDoc(doc(db, COLLECTION, id), safe);
+}
+
 export async function deleteArtifact(id) {
   if (!isFirebaseConfigured) throw new Error("Firebase isn't configured.");
   await deleteDoc(doc(db, COLLECTION, id));
