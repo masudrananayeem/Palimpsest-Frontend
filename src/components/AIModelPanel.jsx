@@ -72,8 +72,11 @@ export default function AIModelPanel({ artifact, canEdit }) {
   if (!isMeshApiConfigured) {
     return (
       <div className="panel p-5 text-sm text-bone-dim flex gap-3">
-        <Sparkles className="w-4 h-4 text-scan shrink-0 mt-0.5" />
-        <p>Connect the backend Worker (<code className="text-bone">VITE_API_BASE_URL</code>) to enable real AI image-to-3D reconstruction here.</p>
+        <Sparkles className="w-4 h-4 text-bronze-bright shrink-0 mt-0.5" />
+        <div>
+          <p><span className="text-bone font-medium">Optional paid upgrade.</span> The free "3D relief" tab already works with no setup. This tab calls a real AI image-to-3D service (Meshy, Tripo3D, or Rodin) for an actual reconstructed mesh — as of now, every one of those providers requires a paid plan for API access, so it's off by default.</p>
+          <p className="mt-2 text-xs">To enable it later: get a paid API key from one of those providers, set it as a backend secret, and set <code className="text-bone">VITE_API_BASE_URL</code> on the frontend.</p>
+        </div>
       </div>
     );
   }

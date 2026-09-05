@@ -27,7 +27,7 @@ export default function ArtifactDetail() {
   const { addRecent } = useRecentArtifacts();
   const requireAuth = useAuthGate();
   const [notes, setNotes] = useLocalStorage(`palimpsest-note-${id}`, "");
-  const [viewMode, setViewMode] = useState("flat"); // "flat" | "relief"
+  const [viewMode, setViewMode] = useState("relief"); // "relief" | "flat" | "ai"
 
   useEffect(() => {
     let active = true;
@@ -111,9 +111,9 @@ export default function ArtifactDetail() {
         <div>
           {artifact.imageUrl && (
             <div className="mb-3 inline-flex rounded-lg border border-ink-line overflow-hidden">
-              <button onClick={() => setViewMode("flat")} className={`px-3.5 py-2 text-xs font-mono uppercase tracking-wide flex items-center gap-1.5 transition-colors ${viewMode === "flat" ? "bg-scan/15 text-scan" : "text-bone-faint hover:text-bone"}`}><ImageIcon className="w-3.5 h-3.5" /> Photo</button>
-              <button onClick={() => setViewMode("relief")} className={`px-3.5 py-2 text-xs font-mono uppercase tracking-wide flex items-center gap-1.5 transition-colors border-l border-ink-line ${viewMode === "relief" ? "bg-scan/15 text-scan" : "text-bone-faint hover:text-bone"}`}><Boxes className="w-3.5 h-3.5" /> 3D relief</button>
-              <button onClick={() => setViewMode("ai")} className={`px-3.5 py-2 text-xs font-mono uppercase tracking-wide flex items-center gap-1.5 transition-colors border-l border-ink-line ${viewMode === "ai" ? "bg-scan/15 text-scan" : "text-bone-faint hover:text-bone"}`}><Sparkles className="w-3.5 h-3.5" /> AI 3D model</button>
+              <button onClick={() => setViewMode("relief")} className={`px-3.5 py-2 text-xs font-mono uppercase tracking-wide flex items-center gap-1.5 transition-colors ${viewMode === "relief" ? "bg-scan/15 text-scan" : "text-bone-faint hover:text-bone"}`}><Boxes className="w-3.5 h-3.5" /> 3D relief</button>
+              <button onClick={() => setViewMode("flat")} className={`px-3.5 py-2 text-xs font-mono uppercase tracking-wide flex items-center gap-1.5 transition-colors border-l border-ink-line ${viewMode === "flat" ? "bg-scan/15 text-scan" : "text-bone-faint hover:text-bone"}`}><ImageIcon className="w-3.5 h-3.5" /> Photo</button>
+              <button onClick={() => setViewMode("ai")} className={`px-3.5 py-2 text-xs font-mono uppercase tracking-wide flex items-center gap-1.5 transition-colors border-l border-ink-line ${viewMode === "ai" ? "bg-scan/15 text-scan" : "text-bone-faint hover:text-bone"}`}><Sparkles className="w-3.5 h-3.5" /> AI 3D model <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-bronze/20 text-bronze-bright normal-case tracking-normal">Pro</span></button>
             </div>
           )}
           <div className="aspect-square rounded-xl border border-ink-line mesh-grid overflow-hidden relative">
