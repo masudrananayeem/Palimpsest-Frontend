@@ -6,6 +6,7 @@ import ArtifactGlyph from "./ArtifactGlyph";
 import useFavorites from "../hooks/useFavorites";
 import useCompare from "../hooks/useCompare";
 import useAuthGate from "../hooks/useAuthGate";
+import useImageHealth from "../hooks/useImageHealth";
 import TiltCard from "./TiltCard";
 
 export default function ArtifactCard({ artifact }) {
@@ -15,12 +16,14 @@ export default function ArtifactCard({ artifact }) {
   const requireAuth = useAuthGate();
   const favorite = isFavorite(artifact.id);
   const compared = isCompared(artifact.id);
+  const imageHealth = useImageHealth(artifact.imageUrl);
+  const showPhoto = Boolean(artifact.imageUrl) && imageHealth !== "broken";
 
   return (
     <div className={`group lift-card panel overflow-hidden transition-colors duration-300 flex flex-col ${compared ? "border-scan/70 shadow-[0_0_0_1px_rgb(var(--c-scan)/.18)]" : "hover:border-scan/50"}`}>
       <Link to={`/archive/${artifact.id}`} className="block">
         <TiltCard strength={7} tone={artifact.thumbnailTone} className="relative aspect-[4/3] mesh-grid overflow-hidden rounded-none" style={{ background: `linear-gradient(150deg, ${artifact.thumbnailTone}26, rgb(var(--c-ink)))` }}>
-          {artifact.imageUrl ? (
+          {artifact.imageUrl && showPhoto ? (
             <img src={artifact.imageUrl} alt={artifact.title} className="absolute inset-0 w-full h-full object-cover" loading="lazy" />
           ) : (
             <>

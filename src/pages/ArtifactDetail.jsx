@@ -15,6 +15,7 @@ import useFavorites from "../hooks/useFavorites";
 import useRecentArtifacts from "../hooks/useRecentArtifacts";
 import useLocalStorage from "../hooks/useLocalStorage";
 import useAuthGate from "../hooks/useAuthGate";
+import useImageHealth from "../hooks/useImageHealth";
 
 export default function ArtifactDetail() {
   const { id } = useParams();
@@ -28,6 +29,7 @@ export default function ArtifactDetail() {
   const requireAuth = useAuthGate();
   const [notes, setNotes] = useLocalStorage(`palimpsest-note-${id}`, "");
   const [viewMode, setViewMode] = useState("relief"); // "relief" | "flat" | "ai"
+  const imageHealth = useImageHealth(artifact?.imageUrl);
 
   useEffect(() => {
     let active = true;
@@ -69,6 +71,7 @@ export default function ArtifactDetail() {
 
   const status = statusMeta[artifact.status] || statusMeta.queued;
   const relatedItems = related.filter((a) => a.id !== artifact.id && a.category === artifact.category).slice(0, 3);
+  const hasPhoto = Boolean(artifact.imageUrl) && imageHealth !== "broken";
 
   const copyCitation = async () => {
     try {
@@ -109,15 +112,21 @@ export default function ArtifactDetail() {
 
       <div className="mt-6 grid lg:grid-cols-2 gap-12">
         <div>
-          {artifact.imageUrl && (
+          {hasPhoto && (
             <div className="mb-3 inline-flex rounded-lg border border-ink-line overflow-hidden">
               <button onClick={() => setViewMode("relief")} className={`px-3.5 py-2 text-xs font-mono uppercase tracking-wide flex items-center gap-1.5 transition-colors ${viewMode === "relief" ? "bg-scan/15 text-scan" : "text-bone-faint hover:text-bone"}`}><Boxes className="w-3.5 h-3.5" /> 3D relief</button>
               <button onClick={() => setViewMode("flat")} className={`px-3.5 py-2 text-xs font-mono uppercase tracking-wide flex items-center gap-1.5 transition-colors border-l border-ink-line ${viewMode === "flat" ? "bg-scan/15 text-scan" : "text-bone-faint hover:text-bone"}`}><ImageIcon className="w-3.5 h-3.5" /> Photo</button>
               <button onClick={() => setViewMode("ai")} className={`px-3.5 py-2 text-xs font-mono uppercase tracking-wide flex items-center gap-1.5 transition-colors border-l border-ink-line ${viewMode === "ai" ? "bg-scan/15 text-scan" : "text-bone-faint hover:text-bone"}`}><Sparkles className="w-3.5 h-3.5" /> AI 3D model <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-bronze/20 text-bronze-bright normal-case tracking-normal">Pro</span></button>
             </div>
           )}
+          {artifact.imageUrl && imageHealth === "broken" && (
+            <div className="mb-3 flex items-center gap-2 rounded-lg border border-rust/30 bg-rust/5 px-3.5 py-2.5 text-xs text-rust-bright">
+              <Lock className="w-3.5 h-3.5 shrink-0" />
+              This record's stored photo link isn't loading, so 3D/photo views are hidden — showing the procedural preview instead. Re-upload the photo from the Dashboard to fix this record.
+            </div>
+          )}
           <div className="aspect-square rounded-xl border border-ink-line mesh-grid overflow-hidden relative">
-            {artifact.imageUrl ? (
+            {hasPhoto ? (
               viewMode === "relief" ? (
                 <PhotoRelief3D src={artifact.imageUrl} height={520} className="w-full h-full !rounded-none border-0" />
               ) : viewMode === "ai" ? (
