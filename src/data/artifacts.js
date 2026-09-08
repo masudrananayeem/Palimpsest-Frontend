@@ -168,7 +168,7 @@ export const statusMeta = {
     label: "Restored",
     color: "text-verdigris-bright",
     dot: "bg-verdigris-bright",
-    hint: "Curator-approved digital twin published. Inferred geometry stays flagged in the viewer.",
+    hint: "Curator-approved and published — its photo passed an automatic load check, so the 3D/photo preview is confirmed working for visitors. Inferred geometry stays flagged in the viewer.",
   },
   "in-progress": {
     label: "In restoration",

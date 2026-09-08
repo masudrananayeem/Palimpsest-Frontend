@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { ShieldCheck, Loader2, Trash2, ExternalLink, RefreshCcw, AlertTriangle, UserPlus, Crown, X } from "lucide-react";
 import { getArtifacts, updateArtifactStatus, deleteArtifact } from "../lib/artifactsRepo";
+import { verifyImageLoads } from "../lib/mediaCheck";
 import { listAdmins, addAdmin, removeAdmin } from "../lib/adminRepo";
 import { statusMeta } from "../data/artifacts";
 import { useAuth } from "../context/AuthContext";
@@ -42,16 +43,35 @@ export default function Admin() {
   useEffect(load, []);
   useEffect(loadAdmins, []);
 
+  const [checkingId, setCheckingId] = useState(null);
+
   const handleStatusChange = async (id, status) => {
     setError("");
     setBusyId(id);
     try {
+      // Publishing ("restored") is gated: the record only goes live once its
+      // photo actually loads, so the 3D relief/photo views won't be broken
+      // for visitors. Sending back to an earlier stage never needs this.
+      if (status === "restored") {
+        setCheckingId(id);
+        const artifact = items.find((a) => a.id === id);
+        const ok = await verifyImageLoads(artifact?.imageUrl);
+        setCheckingId(null);
+        if (!ok) {
+          setError(
+            `Can't publish "${artifact?.title}" — its photo isn't loading, so the 3D preview would be broken for visitors. Ask the contributor to re-upload the photo (Dashboard → Edit), or fix the image link, then try approving again.`
+          );
+          setBusyId(null);
+          return;
+        }
+      }
       await updateArtifactStatus(id, status);
       setItems((prev) => prev.map((a) => (a.id === id ? { ...a, status } : a)));
     } catch (err) {
       setError(err.message || "Couldn't update status.");
     } finally {
       setBusyId(null);
+      setCheckingId(null);
     }
   };
 
@@ -123,6 +143,11 @@ export default function Admin() {
         </div>
       )}
 
+      <div className="mt-8 panel p-4 text-sm text-bone-dim flex gap-3 border-scan/25">
+        <ShieldCheck className="w-5 h-5 text-scan shrink-0" />
+        <p>Setting a record to <span className="text-bone">{statusMeta.restored.label}</span> automatically checks that its photo actually loads first — so nothing goes live with a broken 3D/photo preview. If the check fails, the status won't change and you'll see why below.</p>
+      </div>
+
       {error && (
         <div className="mt-8 panel p-4 text-sm text-rust-bright flex gap-3 border-rust-bright/40">
           <AlertTriangle className="w-5 h-5 shrink-0" /> {error}
@@ -155,16 +180,23 @@ export default function Admin() {
                 <p className="text-xs text-bone-faint mt-1">{a.category} · {a.era} · by {a.contributor || "Unknown"}</p>
               </div>
 
-              <select
-                value={a.status}
-                disabled={busyId === a.id || source === "demo"}
-                onChange={(e) => handleStatusChange(a.id, e.target.value)}
-                className="field !w-auto !py-1.5 !text-xs"
-              >
-                {STATUS_OPTIONS.map((s) => (
-                  <option key={s} value={s}>{statusMeta[s].label}</option>
-                ))}
-              </select>
+              <div className="flex items-center gap-2">
+                <select
+                  value={a.status}
+                  disabled={busyId === a.id || source === "demo"}
+                  onChange={(e) => handleStatusChange(a.id, e.target.value)}
+                  className="field !w-auto !py-1.5 !text-xs"
+                >
+                  {STATUS_OPTIONS.map((s) => (
+                    <option key={s} value={s}>{statusMeta[s].label}</option>
+                  ))}
+                </select>
+                {checkingId === a.id && (
+                  <span className="flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-wide text-scan">
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" /> Checking 3D preview…
+                  </span>
+                )}
+              </div>
 
               <button
                 onClick={() => handleDelete(a.id, a.title)}
